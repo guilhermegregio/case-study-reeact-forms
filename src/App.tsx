@@ -1,13 +1,10 @@
-import { useForm } from "react-hook-form"
+import { useForm, FieldValues, UseFormRegister } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { QueryClient, QueryClientProvider } from 'react-query'
 import * as styles from './styles'
 import { formSchema, FormValues } from "./schema";
 import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from "./masks";
 import { adapterToForm, useApiGetValues, useApiPostValues } from "./api"
-
-
-const identity = v => v
 
 const queryClient = new QueryClient()
 
@@ -38,18 +35,9 @@ type FormProps = {
   data: FormValues
 }
 
-
-const useFormCustom = ({ defaultValues, resolver, onSubmit, masks }: any) => {
-  const form = useForm<FormValues>({
-    defaultValues,
-    resolver,
-  });
-
-  const handleSubmit = form.handleSubmit(onSubmit)
-
-
-  const register: typeof form.register = (name, opts) => {
-    return form.register(name, {
+const factoryMasksToRegister = <T extends FieldValues>(masks: Partial<Record<keyof T, any>>) => (register: UseFormRegister<T>) => {
+  const registerCustom: UseFormRegister<T> = (name, opts) => {
+    return register(name, {
       ...opts,
       onChange: (ev) => {
         masks[name]?.onChange?.(ev)
@@ -60,56 +48,60 @@ const useFormCustom = ({ defaultValues, resolver, onSubmit, masks }: any) => {
     })
   }
 
-  return { ...form, handleSubmit, register }
+  return registerCustom
 }
+
+const registerWithMasks = factoryMasksToRegister<FormValues>({
+  date: dateMask,
+  cpfOrCnpj: cpfOrCnpjMask,
+  phone: phoneMask,
+  currency: currencyMask,
+})
 
 const Form = ({ data }: FormProps) => {
   const { mutate } = useApiPostValues()
 
-  const form = useFormCustom({
+  const form = useForm<FormValues>({
     defaultValues: data,
     resolver: yupResolver(formSchema),
-    onSubmit: (data: any) => mutate(data),
-    masks: {
-      date: dateMask,
-      cpfOrCnpj: cpfOrCnpjMask,
-      phone: phoneMask,
-      currency: currencyMask
-    }
   });
+
+  const register = registerWithMasks(form.register)
+
+  const handleSubmit = form.handleSubmit(data => mutate(data))
 
   return (
     <div className="flex flex-row justify-center items-top space-x-4">
       <div className="block p-6 rounded-lg shadow-lg bg-white max-w-md w-96 my-8">
         <h1 className="text-1xl font-bold text-center my-8">React + Yup + IMask + React Hook Formt</h1>
 
-        <form onSubmit={form.handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <input type="range" className={styles.input} {...form.register('range')} />
+            <input type="range" className={styles.input} {...register('range', { onChange: ev => console.log('custom', ev) })} />
           </div>
 
           <div className="mb-6">
-            <input type="email" className={styles.input} placeholder="Email" {...form.register('email')} />
+            <input type="email" className={styles.input} placeholder="Email" {...register('email')} />
           </div>
 
           <div className="mb-6">
-            <input type="text" className={styles.input} placeholder="Date" {...form.register('date')} />
+            <input type="text" className={styles.input} placeholder="Date" {...register('date')} />
           </div>
 
           <div className="mb-6">
-            <input type="text" className={styles.input} placeholder="CPF or CNPJ" {...form.register('cpfOrCnpj')} />
+            <input type="text" className={styles.input} placeholder="CPF or CNPJ" {...register('cpfOrCnpj')} />
           </div>
 
           <div className="mb-6">
-            <input type="text" className={styles.input} placeholder="Phone" {...form.register('phone')} />
+            <input type="text" className={styles.input} placeholder="Phone" {...register('phone')} />
           </div>
 
           <div className="mb-6">
-            <input type="text" className={styles.input} placeholder="Currency" {...form.register('currency')} />
+            <input type="text" className={styles.input} placeholder="Currency" {...register('currency')} />
           </div>
 
           <div className="mb-6">
-            <select className={styles.input} {...form.register('select')}>
+            <select className={styles.input} {...register('select')}>
               <option value="">Selecione...</option>
               <option value="option-1">Opção 1</option>
               <option value="option-2">Opção 2</option>
@@ -124,40 +116,40 @@ const Form = ({ data }: FormProps) => {
               className={styles.text}
               rows={3}
               placeholder="Message"
-              {...form.register('textarea')}
+              {...register('textarea')}
             ></textarea>
           </div>
 
 
           <div className="text-center mb-6 flex flex-col items-start space-y-4">
             <label className="form-check-label inline-block text-gray-800">
-              <input type="radio" className={styles.check} {...form.register('radio')} value="option-1" />
+              <input type="radio" className={styles.check} {...register('radio')} value="option-1" />
               Opção 1
             </label>
             <label className="form-check-label inline-block text-gray-800">
-              <input type="radio" className={styles.check} {...form.register('radio')} value="option-2" />
+              <input type="radio" className={styles.check} {...register('radio')} value="option-2" />
               Opção 2
             </label>
             <label className="form-check-label inline-block text-gray-800">
-              <input type="radio" className={styles.check} {...form.register('radio')} value="option-3" />
+              <input type="radio" className={styles.check} {...register('radio')} value="option-3" />
               Opção 3
             </label>
           </div>
 
           <div className="text-center mb-6 flex flex-col items-start space-y-4">
             <label className="form-check-label inline-block text-gray-800">
-              <input type="checkbox" className={styles.check} {...form.register('checkboxs')} value="check1" />
+              <input type="checkbox" className={styles.check} {...register('checkboxs')} value="check1" />
               Opção 1
             </label>
             <label className="form-check-label inline-block text-gray-800">
-              <input type="checkbox" className={styles.check} {...form.register('checkboxs')} value="check2" />
+              <input type="checkbox" className={styles.check} {...register('checkboxs')} value="check2" />
               Opção 2
             </label>
           </div>
 
           <div className="text-center mb-6 flex flex-col items-start space-y-4">
             <label className="form-check-label inline-block text-gray-800">
-              <input type="checkbox" className={styles.check} {...form.register('checkbox')} />
+              <input type="checkbox" className={styles.check} {...register('checkbox')} />
               Agree with this terms
             </label>
           </div>
