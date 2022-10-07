@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from 'react-query';
-import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from './masks';
+import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from '@/shared/masks';
 import { FormValues } from './schema';
 
 let data: FormValues = {

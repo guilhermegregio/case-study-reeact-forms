@@ -1,5 +1,4 @@
-import * as yup from './yup'
-
+import * as yup from '@/shared/utils/yup'
 
 export const formSchema = yup.object({
   range: yup.number().required(),

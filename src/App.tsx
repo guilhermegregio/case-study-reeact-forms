@@ -1,9 +1,13 @@
-import { useForm, FieldValues, UseFormRegister } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { QueryClient, QueryClientProvider } from 'react-query'
+import { pipe } from "fp-ts/function";
+import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from "@/shared/masks";
+import { debounce } from "@/shared/utils/debounce";
+import { factoryMasksToRegister } from "@/shared/utils/addMasksToRegister";
+import { factoryEventsToRegister } from "@/shared/utils/addEventsToRegister";
 import * as styles from './styles'
 import { formSchema, FormValues } from "./schema";
-import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from "./masks";
 import { adapterToForm, useApiGetValues, useApiPostValues } from "./api"
 
 const queryClient = new QueryClient()
@@ -18,7 +22,6 @@ const Api = () => {
   );
 }
 
-
 const Errors = ({ errors }: any) => (
   <pre className="my-8 text-white p-4 whitespace-pre-wrap">
     <p>Object off errors</p>
@@ -30,25 +33,8 @@ const Errors = ({ errors }: any) => (
   </pre>
 )
 
-
 type FormProps = {
   data: FormValues
-}
-
-const factoryMasksToRegister = <T extends FieldValues>(masks: Partial<Record<keyof T, any>>) => (register: UseFormRegister<T>) => {
-  const registerCustom: UseFormRegister<T> = (name, opts) => {
-    return register(name, {
-      ...opts,
-      onChange: (ev) => {
-        masks[name]?.onChange?.(ev)
-        opts?.onChange?.(ev)
-        console.log(name, ev.currentTarget.value)
-        return ev
-      }
-    })
-  }
-
-  return registerCustom
 }
 
 const registerWithMasks = factoryMasksToRegister<FormValues>({
@@ -56,6 +42,16 @@ const registerWithMasks = factoryMasksToRegister<FormValues>({
   cpfOrCnpj: cpfOrCnpjMask,
   phone: phoneMask,
   currency: currencyMask,
+})
+
+
+const registerWithEvent = factoryEventsToRegister<FormValues>((ev: any) => {
+  debounce(() => {
+    const { name, value } = ev.target
+    console.log(`dispatch event: element_name: "${name}" element_value: "${value}"`)
+  })
+
+  return ev
 })
 
 const Form = ({ data }: FormProps) => {
@@ -66,7 +62,7 @@ const Form = ({ data }: FormProps) => {
     resolver: yupResolver(formSchema),
   });
 
-  const register = registerWithMasks(form.register)
+  const register = pipe(form.register, registerWithMasks, registerWithEvent)
 
   const handleSubmit = form.handleSubmit(data => mutate(data))
 
