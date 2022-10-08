@@ -1,7 +1,7 @@
 import * as yup from 'yup'
 import * as dateFns from 'date-fns'
-import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from './masks'
 import { isValidCPF, isValidPhone } from '@brazilian-utils/brazilian-utils';
+import { cpfOrCnpjMask, currencyMask, dateMask, phoneMask } from '@/shared/masks'
 
 declare module 'yup' {
   interface StringSchema {
